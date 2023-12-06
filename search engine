@@ -1,0 +1,71 @@
+import numpy as np
+import pandas as pd
+import os
+import tensorflow as tf
+import tensorflow.keras as keras
+from keras import Model
+from keras.applications.densenet import DenseNet121
+from keras.applications import vgg16
+from keras.preprocessing import image
+from keras.applications.densenet import preprocess_input, decode_predictions
+from keras.layers import GlobalMaxPooling2D
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import cv2
+import pathlib
+from sklearn.metrics.pairwise import linear_kernel
+import re
+from sklearn.metrics.pairwise import cosine_similarity
+import difflib
+
+
+styles_df = pd.read_csv("wokehh.csv", nrows=6000, error_bad_lines=False) # Read 6000 product and drop bad lines
+styles_df['image'] = styles_df.apply(lambda x: str(x['id']) + ".jpg", axis=1) # Make image column contains (id.jpg)
+print(styles_df.shape)
+styles_df.head(5)
+
+styles_df['final'] =styles_df[join].apply(lambda row: "".join(row.values.astype(str)), axis=1)
+styles_df['final']= [re.sub(r'\s',' ', str(x)) for x in styles_df['final']]
+styles_df.head()
+
+
+dict = {}
+for i in list(styles_df.columns):
+    dict[i] = styles_df[i].value_counts().shape[0]
+
+print(pd.DataFrame(dict,index = ["Unique counts"]).transpose())
+
+temp = styles_df.isnull().sum()
+uniq = pd.DataFrame({'Columns': temp.index, 'Missing values': temp.values})
+uniq
+
+from sklearn.metrics.pairwise import linear_kernel
+cosine_sim = linear_kernel(tfidf_matrix,tfidf_matrix)
+
+
+indices = pd.Series(styles_df.index, index = styles_df['productDisplayName']).drop_duplicates()
+
+vectorizer = TfidfVectorizer()
+X_new = vectorizer.fit_transform([x.lower() for x in styles_df['final']])
+
+
+
+def search_engine(word, limit=9):
+    word = re.sub('[^a-zA-Z0-9 ]','', word.lower()) # match everyting that's not alphabet and digit and remove it
+    #word = re.sub(r'\s','', word.lower())
+    query_vec = vectorizer.transform([word])
+    similarity = cosine_similarity(query_vec, X_new).flatten()
+
+    filtered = np.where(similarity != 0)[0]
+    indices = np.argsort(-similarity[filtered])
+    correct_indices = filtered[indices]
+    styles_df["words"] = word
+    styles_df['similarity_score'] = (styles_df[['final','words']].apply(lambda x: difflib.SequenceMatcher(None, x[0].lower(), x[1].lower()).ratio(), axis=1))
+    result = styles_df.iloc[correct_indices]
+
+    if not len(result):
+        return 'result not found'
+    overall =  result['similarity_score'] *  similarity[correct_indices]
+    return result.loc[overall.sort_values(ascending=False).index].head(limit)
+
+    search_engine('black')
